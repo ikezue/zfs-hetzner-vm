@@ -105,7 +105,7 @@ function display_intro_banner {
 
   local dialog_message='Hello!
 This script will prepare the ZFS pools, then install and configure minimal Ubuntu 20 LTS with ZFS root on Hetzner hosting VPS instance
-The script with minimal changes may be used on any other hosting provider  supporting KVM virtualization and offering Debian-based rescue system.
+The script with minimal changes may be used on any other hosting provider supporting KVM virtualization and offering Debian-based rescue system.
 In order to stop the procedure, hit Esc twice during dialogs (excluding yes/no ones), or Ctrl+C while any operation is running.
 '
   dialog --msgbox "$dialog_message" 30 100
@@ -711,7 +711,7 @@ DKMS'
 echo "======= installing OpenSSH and network tooling =========="
 chroot_execute "apt install --yes openssh-server net-tools"
 
-echo "======= setup OpenSSH  =========="
+echo "======= setup OpenSSH =========="
 mkdir -p "$c_zfs_mount_dir/root/.ssh/"
 cp /root/.ssh/authorized_keys "$c_zfs_mount_dir/root/.ssh/authorized_keys"
 sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' "$c_zfs_mount_dir/etc/ssh/sshd_config"

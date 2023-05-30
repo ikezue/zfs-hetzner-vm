@@ -9,7 +9,7 @@ __WARNING:__ all data on the disk will be destroyed.
 
 * Login into Hetzner cloud server console.
 * Choose "rescue" menu.
-* Click "enable rescue and power cycle",  add SSH key to the rescue console, set it OS to linux64, then press mount rescue and power cycle" button.
+* Click "enable rescue and power cycle", add SSH key to the rescue console, set it OS to linux64, then press mount rescue and power cycle" button.
 * connect via SSH to rescue console, and run the script from this repo.
 
 Debian 10 minimal setup with SSH server
