@@ -15,31 +15,31 @@ __WARNING:__ all data on the disk will be destroyed.
 Debian 10 minimal setup with SSH server
 
 ````bash
-curl -s https://raw.githubusercontent.com/terem42/zfs-hetzner-vm/master/hetzner-debian10-zfs-setup.sh | bash -
+curl -s https://raw.githubusercontent.com/cinderblock/zfs-hetzner-vm/master/hetzner-debian10-zfs-setup.sh | bash -
 ````
 
 Debian 11 minimal setup with SSH server
 
 ````bash
-curl -s https://raw.githubusercontent.com/terem42/zfs-hetzner-vm/master/hetzner-debian11-zfs-setup.sh | bash -
+curl -s https://raw.githubusercontent.com/cinderblock/zfs-hetzner-vm/master/hetzner-debian11-zfs-setup.sh | bash -
 ````
 
 Ubuntu 18.04 LTS minimal setup with SSH server
 
 ````bash
-curl -s https://raw.githubusercontent.com/terem42/zfs-hetzner-vm/master/hetzner-ubuntu18-zfs-setup.sh | bash -
+curl -s https://raw.githubusercontent.com/cinderblock/zfs-hetzner-vm/master/hetzner-ubuntu18-zfs-setup.sh | bash -
 ````
 
 Ubuntu 20 LTS minimal setup with SSH server
 
 ````bash
-curl -s https://raw.githubusercontent.com/terem42/zfs-hetzner-vm/master/hetzner-ubuntu20-zfs-setup.sh | bash -
+curl -s https://raw.githubusercontent.com/cinderblock/zfs-hetzner-vm/master/hetzner-ubuntu20-zfs-setup.sh | bash -
 ````
 
 Ubuntu 22 LTS minimal setup with SSH server
 
 ````bash
-curl -s https://raw.githubusercontent.com/terem42/zfs-hetzner-vm/master/hetzner-ubuntu22-zfs-setup.sh | bash -
+curl -s https://raw.githubusercontent.com/cinderblock/zfs-hetzner-vm/master/hetzner-ubuntu22-zfs-setup.sh | bash -
 ````
 
 Answer script questions about desired hostname and ZFS ARC cache size.
