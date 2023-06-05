@@ -136,6 +136,7 @@ function check_prerequisites {
   mdadm --stop --scan
 
   apt-get update
+  apt-get -y upgrade
 
   which zfs || wget https://gist.githubusercontent.com/tijszwinkels/966ec9b38b190bf80c2b2e4cfddf252a/raw/6d42ae592a49deb141ed4c42e6973eec5f4247f8/zfs -O /usr/local/bin/zfs && chmod +x /usr/local/bin/zfs
 }
