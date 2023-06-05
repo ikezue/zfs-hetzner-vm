@@ -134,6 +134,8 @@ function check_prerequisites {
   fi
 
   mdadm --stop --scan
+
+  apt-get update
 }
 
 
