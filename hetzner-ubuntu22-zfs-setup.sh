@@ -132,6 +132,8 @@ function check_prerequisites {
   if ! dpkg-query --showformat="\${Status}" -W dialog 2> /dev/null | grep -q "install ok installed"; then
     apt install --yes dialog
   fi
+
+  mdadm --stop --scan
 }
 
 
