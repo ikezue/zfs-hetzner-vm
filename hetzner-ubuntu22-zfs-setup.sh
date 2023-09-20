@@ -154,7 +154,8 @@ function find_suitable_disks {
   local candidate_disk_ids
   local mounted_devices
 
-  candidate_disk_ids=$(find /dev/disk/by-id -regextype awk -regex '.+/(ata|nvme|scsi)-.+' -not -regex '.+-part[0-9]+$' | sort)
+  # candidate_disk_ids=$(find /dev/disk/by-id -regextype awk -regex '.+/(ata|nvme|scsi)-.+' -not -regex '.+-part[0-9]+$' | sort)
+  candidate_disk_ids=$(find /dev -maxdepth 1 -name 'nvme*n*' | sort)
   mounted_devices="$(df | awk 'BEGIN {getline} {print $1}' | xargs -n 1 lsblk -no pkname 2> /dev/null | sort -u || true)"
 
   while read -r disk_id || [[ -n "$disk_id" ]]; do
