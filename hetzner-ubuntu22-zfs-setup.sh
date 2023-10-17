@@ -504,8 +504,8 @@ echo "======= create zfs pools and datasets =========="
   fi
 
   for selected_disk in "${v_selected_disks[@]}"; do
-    rpool_disks_partitions+=("${selected_disk}-part3")
-    bpool_disks_partitions+=("${selected_disk}-part2")
+    rpool_disks_partitions+=("${selected_disk}-p3")
+    bpool_disks_partitions+=("${selected_disk}-p2")
   done
 
   # Create a striped pool - no data redundancy
@@ -752,7 +752,7 @@ chroot_execute "sed -i 's/splash//g' /etc/default/grub"
 chroot_execute "echo 'GRUB_DISABLE_OS_PROBER=true'   >> /etc/default/grub"
 
 for ((i = 1; i < ${#v_selected_disks[@]}; i++)); do
-  dd if="${v_selected_disks[0]}-part1" of="${v_selected_disks[i]}-part1"
+  dd if="${v_selected_disks[0]}-p1" of="${v_selected_disks[i]}-p1"
 done
 
 if [[ $v_encrypt_rpool == "1" ]]; then
