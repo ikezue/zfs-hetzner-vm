@@ -739,6 +739,9 @@ echo "========setting up zfs module parameters========"
 chroot_execute "echo options zfs zfs_arc_max=$((v_zfs_arc_max_mb * 1024 * 1024)) >> /etc/modprobe.d/zfs.conf"
 
 echo "======= setting up grub =========="
+# Ensure the temporary directory exists with correct permissions
+chroot_execute "mkdir -p /tmp/hwc"
+chroot_execute "chmod 1777 /tmp/hwc"
 chroot_execute "echo 'grub-pc grub-pc/install_devices_empty   boolean true' | debconf-set-selections"
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
 chroot_execute "grub-install ${v_selected_disks[0]}"
@@ -750,6 +753,12 @@ chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX=\"\"|GRUB_CMDLINE_LINUX=\"root=ZFS=
 chroot_execute "sed -i 's/quiet//g' /etc/default/grub"
 chroot_execute "sed -i 's/splash//g' /etc/default/grub"
 chroot_execute "echo 'GRUB_DISABLE_OS_PROBER=true'   >> /etc/default/grub"
+
+# Update GRUB
+chroot_execute "update-grub"
+
+# Handle any broken configurations
+chroot_execute "dpkg --configure -a"
 
 for ((i = 1; i < ${#v_selected_disks[@]}; i++)); do
   dd if="${v_selected_disks[0]}p1" of="${v_selected_disks[i]}p1"
