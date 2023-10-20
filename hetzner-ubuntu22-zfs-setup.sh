@@ -750,22 +750,38 @@ echo "======= setting up grub =========="
 # Ensure the temporary directory exists with correct permissions
 chroot_execute "mkdir -p /tmp/hwc"
 chroot_execute "chmod 1777 /tmp/hwc"
-chroot_execute "echo 'grub-pc grub-pc/install_devices_empty   boolean true' | debconf-set-selections"
+
+echo "Setting debconf selection for grub-pc installation"
+chroot_execute "echo 'grub-pc grub-pc/install_devices_empty boolean true' | debconf-set-selections"
+
+echo "Installing grub-pc without interactive prompts"
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
+
+echo "Installing GRUB bootloader to the disk: ${v_selected_disks[0]}"
 chroot_execute "grub-install ${v_selected_disks[0]}"
 
+echo "Enabling GRUB to use console as its terminal"
 chroot_execute "sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub"
+
+echo "Setting GRUB's default command line for Linux to disable predictable network interface names"
 chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"net.ifnames=0\"|' /etc/default/grub"
+
+echo "Setting GRUB's command line for Linux to specify root filesystem on ZFS"
 chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX=\"\"|GRUB_CMDLINE_LINUX=\"root=ZFS=rpool/ROOT/ubuntu\"|g' /etc/default/grub"
 
+echo "Removing 'quiet' from GRUB default options"
 chroot_execute "sed -i 's/quiet//g' /etc/default/grub"
-chroot_execute "sed -i 's/splash//g' /etc/default/grub"
-chroot_execute "echo 'GRUB_DISABLE_OS_PROBER=true'   >> /etc/default/grub"
 
-# Update GRUB
+echo "Removing 'splash' from GRUB default options"
+chroot_execute "sed -i 's/splash//g' /etc/default/grub"
+
+echo "Disabling OS prober in GRUB"
+chroot_execute "echo 'GRUB_DISABLE_OS_PROBER=true' >> /etc/default/grub"
+
+echo "Updating GRUB configurations"
 chroot_execute "update-grub"
 
-# Handle any broken configurations
+echo "Handling and configuring any broken packages"
 chroot_execute "dpkg --configure -a"
 
 for ((i = 1; i < ${#v_selected_disks[@]}; i++)); do
