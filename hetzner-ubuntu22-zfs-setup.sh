@@ -687,6 +687,12 @@ chroot_execute "setupcon"
 chroot_execute "rm -f /etc/localtime /etc/timezone"
 chroot_execute "dpkg-reconfigure tzdata -f noninteractive "
 
+# Set up /tmp/hwc before any package installations
+chroot_execute "mkdir -p /tmp/hwc"
+chroot_execute "chmod 1777 /tmp"
+chroot_execute "chmod 1777 /tmp/hwc"
+chroot_execute "export TMPDIR=/tmp"
+
 echo "======= installing latest kernel============="
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes linux-headers${v_kernel_variant} linux-image${v_kernel_variant}"
 if [[ $v_kernel_variant == "-virtual" ]]; then
@@ -694,6 +700,8 @@ if [[ $v_kernel_variant == "-virtual" ]]; then
   chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes linux-image-extra-virtual"
 fi
 
+# After kernel installation, check and fix broken packages
+chroot_execute "dpkg --configure -a"
 
 echo "======= installing aux packages =========="
 chroot_execute "apt install --yes man-db wget curl software-properties-common nano htop gnupg"
