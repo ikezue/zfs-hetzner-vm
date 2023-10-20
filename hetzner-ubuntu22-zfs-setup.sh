@@ -770,7 +770,7 @@ echo "Setting GRUB's default command line for Linux to disable predictable netwo
 chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"net.ifnames=0\"|' /etc/default/grub"
 
 echo "Setting GRUB's command line for Linux to specify root filesystem on ZFS"
-chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX=\"\"|GRUB_CMDLINE_LINUX=\"root=ZFS=rpool/ROOT/ubuntu\"|g' /etc/default/grub"
+chroot_execute "sed -i 's|GRUB_CMDLINE_LINUX=\"\"|GRUB_CMDLINE_LINUX=\"root=ZFS=$v_rpool_name/ROOT/ubuntu\"|g' /etc/default/grub"
 
 echo "Removing 'quiet' from GRUB default options"
 chroot_execute "sed -i 's/quiet//g' /etc/default/grub"
