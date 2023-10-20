@@ -693,6 +693,9 @@ chroot_execute "chmod 1777 /tmp"
 chroot_execute "chmod 1777 /tmp/hwc"
 chroot_execute "export TMPDIR=/tmp"
 
+echo "======= Installing grub-pc ============="
+chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
+
 echo "======= installing latest kernel============="
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes linux-headers${v_kernel_variant} linux-image${v_kernel_variant}"
 if [[ $v_kernel_variant == "-virtual" ]]; then
