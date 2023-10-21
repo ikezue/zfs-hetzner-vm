@@ -484,11 +484,27 @@ echo "======= partitioning the disk =========="
     tail_space_parameter="-${v_free_tail_space}G"
   fi
 
+  # Prepares and partitions each selected disk for a UEFI boot setup with ZFS.
+  # 1. All existing filesystem signatures and partitions are wiped clean.
+  # 2. A UEFI System Partition (ESP) is created to store the UEFI bootloader.
+  # 3. A Boot pool partition is set up for the /boot directory.
+  # 4. A Root pool partition is created for the root filesystem.
   for selected_disk in "${v_selected_disks[@]}"; do
-    wipefs --all --force "$selected_disk"
-    sgdisk -a1 -n1:24K:+1000K            -t1:EF02 "$selected_disk"
-    sgdisk -n2:0:+2G                   -t2:BF01 "$selected_disk" # Boot pool
-    sgdisk -n3:0:"$tail_space_parameter" -t3:BF01 "$selected_disk" # Root pool
+      # Wipe filesystem signatures to start afresh.
+      wipefs --all --force "$selected_disk"
+      # Remove existing partitions on the disk.
+      sgdisk --zap-all "$selected_disk"
+      # Create the UEFI System Partition (ESP).
+      # This partition will store the UEFI bootloader (GRUB).
+      # Size: 512MB, Start: 1MB, Type: EF00 (EFI System Partition)
+      sgdisk -n1:1M:+512M -t1:EF00 "$selected_disk"
+      # Create the Boot pool partition where /boot will reside.
+      # Size: 2GB, Start: next available sector, Type: BF01 (ZFS Boot)
+      sgdisk -n2:0:+2G -t2:BF01 "$selected_disk"
+      # Create the Root pool partition which will store the root filesystem.
+      # Size: Remaining space as defined by $tail_space_parameter
+      # Start: next available sector, Type: BF01 (ZFS Root)
+      sgdisk -n3:0:"$tail_space_parameter" -t3:BF01 "$selected_disk"
   done
 
   udevadm settle
@@ -693,9 +709,6 @@ chroot_execute "chmod 1777 /tmp"
 chroot_execute "chmod 1777 /tmp/hwc"
 chroot_execute "export TMPDIR=/tmp"
 
-echo "======= Installing grub-pc ============="
-chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
-
 echo "======= installing latest kernel============="
 chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes linux-headers${v_kernel_variant} linux-image${v_kernel_variant}"
 if [[ $v_kernel_variant == "-virtual" ]]; then
@@ -749,6 +762,29 @@ cp /etc/zpool.cache /mnt/etc/zfs/zpool.cache
 echo "========setting up zfs module parameters========"
 chroot_execute "echo options zfs zfs_arc_max=$((v_zfs_arc_max_mb * 1024 * 1024)) >> /etc/modprobe.d/zfs.conf"
 
+echo "======= setting up EFI =========="
+# Configures the UEFI System Partition (ESP) with the FAT32 filesystem.
+# Ensures the necessary boot components are installed.
+# 1. The dosfstools package is installed for disk formatting utilities.
+# 2. Each disk's ESP (created in a prior step) is formatted as FAT32.
+# 3. An EFI mount point is created and the first disk's ESP is mounted to it.
+# 4. Essential boot packages, including GRUB for UEFI and related tools, are installed in the chroot environment.
+#
+# Install dosfstools for FAT filesystem utilities.
+apt install --yes dosfstools
+# Format the UEFI System Partition (ESP) of each disk with FAT32.
+for selected_disk in "${v_selected_disks[@]}"; do
+  mkdosfs -F 32 -s 1 -n EFI "${selected_disk}p1"
+done
+# Create a mount point for the EFI partition.
+chroot_execute "mkdir /boot/efi"
+# Add the first disk's ESP to the filesystem table so it gets mounted at boot.
+chroot_execute "echo /dev/disk/by-uuid/$(blkid -s UUID -o value ${v_selected_disks[0]}p1) /boot/efi vfat defaults 0 0 >> /etc/fstab"
+# Mount the EFI partition to the newly created mount point.
+chroot_execute "mount /boot/efi"
+# Install necessary packages for UEFI booting, including GRUB, inside the chroot environment.
+chroot_execute "apt install --yes grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
+
 echo "======= setting up grub =========="
 # Ensure the temporary directory exists with correct permissions
 chroot_execute "mkdir -p /tmp/hwc"
@@ -757,11 +793,10 @@ chroot_execute "chmod 1777 /tmp/hwc"
 echo "Setting debconf selection for grub-pc installation"
 chroot_execute "echo 'grub-pc grub-pc/install_devices_empty boolean true' | debconf-set-selections"
 
-echo "Installing grub-pc without interactive prompts"
-chroot_execute "DEBIAN_FRONTEND=noninteractive apt install --yes grub-pc"
-
-echo "Installing GRUB bootloader to the disk: ${v_selected_disks[0]}"
-chroot_execute "grub-install ${v_selected_disks[0]}"
+echo "Installing GRUB bootloader"
+# Installs the GRUB bootloader for UEFI systems. Specifies the target architecture,
+# the directory where EFI files are located, and the bootloader ID for the UEFI firmware.
+chroot_execute "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --recheck --no-floppy"
 
 echo "Enabling GRUB to use console as its terminal"
 chroot_execute "sed -i 's/#GRUB_TERMINAL=console/GRUB_TERMINAL=console/g' /etc/default/grub"
@@ -869,21 +904,39 @@ echo "======= update grub =========="
 chroot_execute "update-grub"
 
 echo "======= setting up zed =========="
-
 chroot_execute "zfs set canmount=noauto rpool"
 
 echo "======= setting mountpoints =========="
+# Unmounts the EFI System Partition, configures the ZFS boot dataset mount
+# point to be managed by the system's init process, and updates the /etc/fstab
+# to include the boot dataset.
+#
+# Unmount the EFI System Partition from within the chroot environment.
+chroot_execute "umount /boot/efi"
+# Set the ZFS boot dataset's mount point to "legacy" so that it's mounted
+# by the system's init process rather than automatically by ZFS.
 chroot_execute "zfs set mountpoint=legacy $v_bpool_name/BOOT/ubuntu"
+# Append an entry to the /etc/fstab in the chroot environment, specifying
+# that the ZFS boot dataset should be mounted at /boot with specific properties.
 chroot_execute "echo $v_bpool_name/BOOT/ubuntu /boot zfs nodev,relatime,x-systemd.requires=zfs-mount.service,x-systemd.device-timeout=10 0 0 > /etc/fstab"
 
+# Set the ZFS dataset for /var/log's mount point to "legacy"
+# and append its mounting details to the /etc/fstab.
 chroot_execute "zfs set mountpoint=legacy $v_rpool_name/var/log"
 chroot_execute "echo $v_rpool_name/var/log /var/log zfs nodev,relatime 0 0 >> /etc/fstab"
+# Set the ZFS dataset for /var/spool's mount point to "legacy"
+# and append its mounting details to the /etc/fstab.
 chroot_execute "zfs set mountpoint=legacy $v_rpool_name/var/spool"
 chroot_execute "echo $v_rpool_name/var/spool /var/spool zfs nodev,relatime 0 0 >> /etc/fstab"
+# Set the ZFS dataset for /var/tmp's mount point to "legacy"
+# and append its mounting details to the /etc/fstab.
 chroot_execute "zfs set mountpoint=legacy $v_rpool_name/var/tmp"
 chroot_execute "echo $v_rpool_name/var/tmp /var/tmp zfs nodev,relatime 0 0 >> /etc/fstab"
+# Set the ZFS dataset for /tmp's mount point to "legacy"
+# and append its mounting details to the /etc/fstab.
 chroot_execute "zfs set mountpoint=legacy $v_rpool_name/tmp"
 chroot_execute "echo $v_rpool_name/tmp /tmp zfs nodev,relatime 0 0 >> /etc/fstab"
+
 
 echo "========= add swap, if defined"
 if [[ $v_swap_size -gt 0 ]]; then
